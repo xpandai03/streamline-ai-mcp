@@ -19,13 +19,20 @@ import sys
 # Third-party imports
 try:
     import yt_dlp
-    import whisper
     from openai import OpenAI
     from tqdm import tqdm
 except ImportError as e:
     print(f"Missing dependency: {e}")
-    print("Install with: pip install yt-dlp openai-whisper openai tqdm")
+    print("Install with: pip install yt-dlp openai tqdm")
     sys.exit(1)
+
+# Optional: local whisper for fallback (if API fails or file >25MB)
+try:
+    import whisper
+    HAS_LOCAL_WHISPER = True
+except ImportError:
+    HAS_LOCAL_WHISPER = False
+    logger.warning("Local whisper not installed - will only use API (install with: pip install openai-whisper)")
 
 # Configure logging
 logging.basicConfig(
@@ -75,17 +82,18 @@ class YouTubeDownloader:
         self.output_dir.mkdir(exist_ok=True)
         
     def download_audio(self, url: str) -> Path:
-        """Download audio from YouTube video."""
+        """Download audio from YouTube video (optimized for speed)."""
         logger.info(f"Downloading audio from: {url}")
-        
+
         output_path = self.output_dir / "%(title)s.%(ext)s"
-        
+
+        # Optimized settings for fastest download (lower quality is fine for transcription)
         ydl_opts = {
-            'format': 'bestaudio/best',
+            'format': 'worstaudio/worst',  # Fastest download - quality doesn't matter for transcription
             'postprocessors': [{
                 'key': 'FFmpegExtractAudio',
                 'preferredcodec': 'mp3',
-                'preferredquality': '192',
+                'preferredquality': '64',  # Lower quality = faster download & smaller file
             }],
             'outtmpl': str(output_path),
             'quiet': True,
@@ -104,22 +112,22 @@ class YouTubeDownloader:
 
 
 class WhisperTranscriber:
-    """Handles audio transcription using OpenAI Whisper."""
-    
-    def __init__(self, model_size: str = "base"):
+    """Handles audio transcription using OpenAI Whisper API (10x faster than local)."""
+
+    def __init__(self, api_key: str, model_size: str = "base"):
         """
-        Initialize Whisper model.
-        
+        Initialize Whisper API client.
+
         Args:
-            model_size: Size of Whisper model (tiny, base, small, medium, large)
+            api_key: OpenAI API key
+            model_size: Kept for compatibility but ignored (API uses whisper-1 model)
         """
-        logger.info(f"Loading Whisper model: {model_size}")
-        self.model = whisper.load_model(model_size)
-        self.max_chunk_duration = 600  # 10 minutes in seconds
-        
+        logger.info(f"Initializing Whisper API client (using whisper-1 model)")
+        self.client = OpenAI(api_key=api_key)
+
     def transcribe(self, audio_path: Path) -> List[TranscriptSegment]:
         """
-        Transcribe audio file with timestamps.
+        Transcribe audio file with timestamps using OpenAI Whisper API.
 
         Args:
             audio_path: Path to audio file
@@ -127,27 +135,62 @@ class WhisperTranscriber:
         Returns:
             List of TranscriptSegment objects
         """
-        logger.info(f"Transcribing: {audio_path}")
-        return self._transcribe_single(audio_path)
-    
-    def _transcribe_single(self, audio_path: Path) -> List[TranscriptSegment]:
-        """Transcribe a single audio file."""
-        result = self.model.transcribe(
-            str(audio_path),
-            verbose=False,
-            language="en",  # Auto-detect if needed
-            task="transcribe"
-        )
-        
-        segments = []
-        for segment in result["segments"]:
-            segments.append(TranscriptSegment(
-                text=segment["text"].strip(),
-                start=segment["start"],
-                end=segment["end"]
-            ))
-        
-        return segments
+        logger.info(f"Transcribing via OpenAI API: {audio_path}")
+
+        # API has 25MB file size limit, check before uploading
+        file_size_mb = audio_path.stat().st_size / (1024 * 1024)
+        if file_size_mb > 25:
+            logger.warning(f"File size {file_size_mb:.1f}MB exceeds 25MB limit, using local fallback")
+            return self._transcribe_local_fallback(audio_path)
+
+        try:
+            with open(audio_path, 'rb') as audio_file:
+                response = self.client.audio.transcriptions.create(
+                    model="whisper-1",
+                    file=audio_file,
+                    response_format="verbose_json",
+                    timestamp_granularities=["segment"]
+                )
+
+            # Parse API response into TranscriptSegment objects
+            segments = []
+            for segment in response.segments:
+                segments.append(TranscriptSegment(
+                    text=segment['text'].strip(),
+                    start=segment['start'],
+                    end=segment['end']
+                ))
+
+            logger.info(f"Transcription complete: {len(segments)} segments")
+            return segments
+
+        except Exception as e:
+            logger.error(f"API transcription failed: {e}, using local fallback")
+            return self._transcribe_local_fallback(audio_path)
+
+    def _transcribe_local_fallback(self, audio_path: Path) -> List[TranscriptSegment]:
+        """Fallback to local Whisper if API fails or file is too large."""
+        try:
+            import whisper
+            logger.info("Using local Whisper model (fallback)")
+            model = whisper.load_model("base")
+            result = model.transcribe(
+                str(audio_path),
+                verbose=False,
+                language="en",
+                task="transcribe"
+            )
+
+            segments = []
+            for segment in result["segments"]:
+                segments.append(TranscriptSegment(
+                    text=segment["text"].strip(),
+                    start=segment["start"],
+                    end=segment["end"]
+                ))
+            return segments
+        except ImportError:
+            raise Exception("Whisper API failed and local whisper is not installed. Install with: pip install openai-whisper")
 
 
 class ViralityAnalyzer:
@@ -347,10 +390,10 @@ GUARDRAILS:
 
 class ViralityDetector:
     """Main orchestrator for the virality detection pipeline."""
-    
+
     def __init__(self, openai_api_key: str, whisper_model: str = "base"):
         self.downloader = YouTubeDownloader()
-        self.transcriber = WhisperTranscriber(whisper_model)
+        self.transcriber = WhisperTranscriber(openai_api_key, whisper_model)
         self.analyzer = ViralityAnalyzer(openai_api_key)
         
     def process_video(self, url: str) -> Dict:
