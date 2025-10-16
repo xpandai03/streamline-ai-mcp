@@ -1,0 +1,5 @@
+1. https://www.youtube.com/watch?v=RC9nOk6yLu0&t=22s  (39 min)
+2. https://www.youtube.com/watch?v=o2s8I6yBrxE   (11 mins) 
+3. https://www.youtube.com/watch?v=DzjWEn2BS_k&t=147s. (20 min)
+4. https://www.youtube.com/watch?v=iqNzfK4_meQ   (5 mins)
+5. https://www.youtube.com/watch?v=tDARtYjUiHs    (16 mins)

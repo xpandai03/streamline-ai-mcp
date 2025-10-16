@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+venv/
+.venv/
+
+# API Keys and Secrets
+.env
+*.key
+cursor_mcp_config.json
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Audio/Video files
+*.mp3
+*.mp4
+*.wav
+*.avi
+
+# Test outputs
+test_results.json
+downloads/
+temp/
+
+# Logs
+*.log

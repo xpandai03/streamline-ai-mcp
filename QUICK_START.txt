@@ -1,0 +1,55 @@
+========================================
+YOUTUBE VIRALITY DETECTOR - QUICK START
+========================================
+
+✅ ALL SETUP COMPLETE - READY TO DEPLOY!
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📋 YOUR 3-STEP DEPLOYMENT:
+
+STEP 1: Open Cursor Settings
+   → Press Cmd+, (Mac) or Ctrl+, (Windows)
+   → Search for "MCP"
+   → Click "Edit Config" or "Configure MCP Servers"
+
+STEP 2: Copy This File's Contents
+   → File: cursor_mcp_config.json
+   → Location: /Users/raunekpratap/Desktop/CLIPPING MCP/
+   → Paste the ENTIRE contents into Cursor's MCP config
+
+STEP 3: Restart Cursor
+   → Completely quit (Cmd+Q on Mac)
+   → Reopen Cursor
+   → You're done! 🎉
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🧪 TEST IT:
+
+In Cursor chat, type:
+"Analyze this YouTube video for viral moments: https://www.youtube.com/watch?v=iqNzfK4_meQ"
+
+Expected: 3-4 viral clips with timestamps, hooks, and scores
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📖 DETAILED GUIDE:
+
+For troubleshooting and advanced usage, see:
+→ DEPLOYMENT_GUIDE.md
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎯 WHAT YOU'LL GET:
+
+✓ 30-60 second viral clips
+✓ Complete thoughts (no mid-sentence cuts)
+✓ Timestamps (HH:MM:SS format)
+✓ Virality scores (0.0-1.0)
+✓ Catchy hooks for each clip
+✓ AI reasoning for why it's viral
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+That's it! Start finding viral moments! 🚀
