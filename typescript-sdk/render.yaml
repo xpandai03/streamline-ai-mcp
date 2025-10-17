@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: yt-mcp-wrapper
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: PYTHON_BACKEND_URL
+        sync: false
+    healthCheckPath: /health
