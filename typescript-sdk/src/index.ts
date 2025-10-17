@@ -186,7 +186,7 @@ mcpRouter.get('/messages', (req, res) => {
 
   // Send MCP initialization event with server info and tools
   const initPayload = {
-    version: '2024-11-05',
+    version: '2024-05-01',
     serverInfo: {
       name: 'youtube-virality-analyzer',
       version: '1.0.0'
@@ -194,7 +194,33 @@ mcpRouter.get('/messages', (req, res) => {
     capabilities: {
       tools: {}
     },
-    tools: [analyzeVideoTool]
+    tools: [
+      {
+        name: 'analyze_youtube_video',
+        description: 'Analyze a YouTube video to find viral clip moments for TikTok, Reels, and Shorts. Returns timestamped clips with virality scores and engagement reasoning.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            url: {
+              type: 'string',
+              description: 'YouTube video URL'
+            },
+            max_clips: {
+              type: 'number',
+              default: 4,
+              description: 'Maximum number of viral clips to return (1-10)'
+            },
+            whisper_model: {
+              type: 'string',
+              default: 'base',
+              enum: ['tiny', 'base', 'small', 'medium'],
+              description: 'Whisper transcription model size'
+            }
+          },
+          required: ['url']
+        }
+      }
+    ]
   };
 
   res.write(`event: init\ndata: ${JSON.stringify(initPayload)}\n\n`);
