@@ -167,31 +167,25 @@ mcpRouter.get('/', (req, res) => {
 });
 
 // SSE endpoint for MCP protocol (ChatGPT expects /mcp base path)
-mcpRouter.get('/messages', async (req, res) => {
+mcpRouter.get('/messages', (req, res) => {
   console.log('[SSE] New MCP connection established at /mcp/messages');
 
-  // Set SSE headers with CORS for ChatGPT
-  res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
-  res.setHeader('Cache-Control', 'no-cache, no-store, no-transform, must-revalidate');
+  // Set all SSE headers at once - BEFORE any writes
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
   res.setHeader('X-Accel-Buffering', 'no');
-
-  // CORS headers for ChatGPT Apps SDK
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept, Authorization');
-  res.setHeader('Access-Control-Expose-Headers', 'Content-Type');
 
-  // Flush headers immediately to establish connection
+  // Flush headers immediately (only once)
   res.flushHeaders();
 
   // Send initial "open" event
-  res.write('event: open\n');
-  res.write('data: {}\n\n');
+  res.write('event: open\ndata: {}\n\n');
   console.log('[SSE] Sent event: open');
 
   // Send MCP initialization event with server info and tools
-  const initData = {
+  const initPayload = {
     version: '2024-11-05',
     serverInfo: {
       name: 'youtube-virality-analyzer',
@@ -203,22 +197,18 @@ mcpRouter.get('/messages', async (req, res) => {
     tools: [analyzeVideoTool]
   };
 
-  res.write('event: init\n');
-  res.write(`data: ${JSON.stringify(initData)}\n\n`);
-  console.log('[SSE] Sent event: init with tools:', initData.tools.map(t => t.name));
+  res.write(`event: init\ndata: ${JSON.stringify(initPayload)}\n\n`);
+  console.log('[SSE] Sent event: init with tools:', initPayload.tools.map(t => t.name));
 
-  // Now connect MCP SDK transport for ongoing communication
-  try {
-    const transport = new SSEServerTransport('/mcp/messages', res);
-    await mcpServer.connect(transport);
-    console.log('[SSE] MCP server transport connected');
-  } catch (error: any) {
-    console.error('[SSE] Error connecting MCP transport:', error.message);
-  }
+  // Keep-alive ping every 10 seconds
+  const keepAlive = setInterval(() => {
+    res.write(': ping\n\n');
+  }, 10000);
 
-  // Keep connection alive - handle client disconnect
+  // Clean up on disconnect
   req.on('close', () => {
     console.log('[SSE] Client disconnected from /mcp/messages');
+    clearInterval(keepAlive);
   });
 });
 
